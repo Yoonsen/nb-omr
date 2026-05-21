@@ -1,7 +1,6 @@
 import warnings
 from typing import Optional, Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -431,11 +430,21 @@ class SMTModelForCausalLM(PreTrainedModel):
             output.loss = self.loss(output.logits.permute(0, 2, 1).contiguous(), labels)
         return output
 
+    def _lookup_token(self, token_id: int) -> str:
+        token = self.i2w.get(token_id)
+        if token is None:
+            token = self.i2w.get(str(token_id))
+        if token is None:
+            raise KeyError(f"Token id {token_id} not found in i2w vocabulary.")
+        return token
+
     @torch.no_grad()
     def predict(self, input: torch.Tensor, convert_to_str: bool = False, return_weights: bool = False):
-        predicted_sequence = torch.from_numpy(np.asarray([self.w2i["<bos>"]])).to(input.device).unsqueeze(0)
+        bos_token = int(self.w2i["<bos>"])
+        eos_token = int(self.w2i["<eos>"])
+        predicted_sequence = torch.full((1, 1), bos_token, dtype=torch.long, device=input.device)
         encoder_output = self.forward_encoder(input)
-        text_sequence = []
+        output: SMTOutput | None = None
 
         for _ in range(self.maxlen - predicted_sequence.shape[-1]):
             output = self.forward_decoder(
@@ -443,16 +452,26 @@ class SMTModelForCausalLM(PreTrainedModel):
                 last_predictions=predicted_sequence,
                 return_weights=return_weights,
             )
-            predicted_token = torch.argmax(output.logits[:, -1, :], dim=-1).item()
+            next_token = torch.argmax(output.logits[:, -1, :], dim=-1, keepdim=True)
             predicted_sequence = torch.cat(
-                [predicted_sequence, torch.argmax(output.logits[:, -1, :], dim=-1, keepdim=True)],
+                [predicted_sequence, next_token],
                 dim=1,
             )
-            if convert_to_str:
-                predicted_token = f"{predicted_token}"
-            if self.i2w[predicted_token] == "<eos>":
+            if torch.all(next_token == eos_token):
                 break
-            text_sequence.append(self.i2w[predicted_token])
+
+        if output is None:
+            raise RuntimeError("Prediction did not produce any decoder output.")
+
+        if not convert_to_str:
+            return predicted_sequence[:, 1:], output
+
+        text_sequence = []
+        for token_id in predicted_sequence[0, 1:].detach().cpu().tolist():
+            token = self._lookup_token(int(token_id))
+            if token == "<eos>":
+                break
+            text_sequence.append(token)
 
         return text_sequence, output
 
