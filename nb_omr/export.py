@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from music21 import converter
+import verovio
 
 
 def simplify_export_duration(token: str) -> str:
@@ -51,3 +52,26 @@ def convert_normalized_ekern_to_musicxml(
 
     score = converter.parseData(export_source, format="humdrum")
     score.write("musicxml", fp=str(musicxml_output_path))
+
+
+def render_musicxml_to_svg(
+    musicxml_path: Path,
+    svg_output_path: Path,
+    scale: int = 36,
+) -> int:
+    toolkit = verovio.toolkit()
+    toolkit.setOptions(
+        {
+            "scale": scale,
+            "adjustPageHeight": True,
+            "pageMarginTop": 40,
+            "pageMarginBottom": 40,
+            "pageMarginLeft": 40,
+            "pageMarginRight": 40,
+        }
+    )
+    toolkit.loadFile(str(musicxml_path))
+    toolkit.redoLayout()
+    page_count = toolkit.getPageCount()
+    svg_output_path.write_text(toolkit.renderToSVG(1), encoding="utf-8")
+    return page_count

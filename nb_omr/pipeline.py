@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .ekern import lint_raw_transcription, normalize_to_ekern, validate_normalized_ekern
-from .export import convert_normalized_ekern_to_musicxml
+from .export import convert_normalized_ekern_to_musicxml, render_musicxml_to_svg
 from .inference import InferenceSession
 from .preprocess import prepare_input_image, resize_for_model
 from .reporting import write_lint_report, write_page_report
@@ -39,6 +39,7 @@ class OMRPipeline:
             lint_json=Path(f"{output_prefix}.lint.json"),
             page_report_json=Path(f"{output_prefix}.report.json"),
             musicxml=Path(f"{output_prefix}.musicxml"),
+            score_svg=Path(f"{output_prefix}.preview.svg"),
         )
 
         artifacts.transcription_txt.write_text(transcription, encoding="utf-8")
@@ -57,12 +58,15 @@ class OMRPipeline:
                     artifacts.musicxml,
                     export_source_path=artifacts.export_kern,
                 )
+                render_musicxml_to_svg(artifacts.musicxml, artifacts.score_svg)
             except Exception as exc:
                 musicxml_error = str(exc)
                 artifacts.musicxml = None
+                artifacts.score_svg = None
         else:
             musicxml_error = "Normalized ekern did not pass validation."
             artifacts.musicxml = None
+            artifacts.score_svg = None
 
         result = PageResult(
             job=job,

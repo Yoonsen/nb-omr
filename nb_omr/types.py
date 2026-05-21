@@ -84,6 +84,7 @@ class ArtifactPaths:
     lint_json: Path
     page_report_json: Path
     musicxml: Path | None = None
+    score_svg: Path | None = None
 
     def to_dict(self) -> dict[str, str | None]:
         return {
@@ -95,6 +96,7 @@ class ArtifactPaths:
             "lint_json": str(self.lint_json),
             "page_report_json": str(self.page_report_json),
             "musicxml": None if self.musicxml is None else str(self.musicxml),
+            "score_svg": None if self.score_svg is None else str(self.score_svg),
         }
 
 
