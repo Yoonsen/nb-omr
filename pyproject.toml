@@ -1,0 +1,17 @@
+[project]
+name = "nb-omr"
+version = "0.1.0"
+description = "Minimal OMR prototype using Sheet Music Transformer"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "numpy>=2.3.0",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.3.0",
+    "pymupdf>=1.26.4",
+    "scikit-image>=0.25.2",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "transformers>=4.49.0,<5",
+]
