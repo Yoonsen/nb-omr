@@ -1,0 +1,127 @@
+
+\documentclass[11pt, a4paper]{article}
+
+% Språk og koding
+\usepackage[utf8]{inputenc}
+\usepackage[norsk]{babel}
+
+% Typografi og layout
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% Matematikk og symboler
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+% Kodevisning
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+\lstset{style=mystyle}
+
+% Tittel og forfattere
+\title{Rør og Ventiler:\\En Hierarkisk Probabilistisk Arkitektur for Parsing av Multimodal Musikknotasjon til Kern}
+\author{Lars G. Bagøien Johnsen \and Thea Mathilde Tollersrud}
+\date{Juni 2026 \\ \vspace{0.5cm} \small \textit{Internt notat, Nasjonalbiblioteket (dhlab)}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Dette notatet skisserer en arkitektur for å oversette uttrekk fra optisk musikkgjenkjenning (OMR) og automatisk musikktranskripsjon (AMT) til det semantiske formatet \texttt{kern}. Vi modellerer systemet som et sett med rigide logiske rørkoblinger ($p=1$) som tvinger støyete sanse-features (ventiler) inn i et lukket, multimodalt system. Videre introduseres takten som en hierarkisk overstyringsmekanisme for å løse lokal usikkerhet i feature-laget.
+\end{abstract}
+
+\section{Introduksjon}
+Å oversette fra geometriske og visuelle primitiver på et noteark, eller fra akustisk energi i et lydopptak, til et semantisk format som \texttt{kern}, krever en håndtering av støyete inndata mot et strengt regelverk. Ved å splitte domenet i usikre \textit{features} og deterministiske \textit{syntaksregler}, kan systemet oppdatere sin tro via Bayesiansk inferens og Markov-modeller.
+
+\section{Optisk Musikkgjenkjenning (Visuelt til Kern)}
+I det visuelle domenet er inndataene piksler som oversettes til et observasjonsrom $V$ bestående av grafiske objekter (hoder, stilker, flagg). \texttt{kern}-syntaksen modelleres som betingede sannsynligheter, der sjansen for en korrekt oversettelse gitt feilfrie features er $1.0$.
+
+\subsection{Tonehøyde (Pitch)}
+Geometri måles relativt til notesystemet, nøkkel og fortegn:
+\begin{equation}
+    P(\text{pitch} = c \mid V_{y\_pos} = \text{linje\_5}, V_{clef} = \text{bass}, V_{key} = \text{C-dur}) = 1.0
+\end{equation}
+
+\subsection{Varighet (Duration)}
+Visuell rytme er en deterministisk funksjon av hodets fyll og halsens attributter:
+\begin{equation}
+    P(\text{dur} = 4. \mid V_{fylt} = 1, V_{stilk} = 1, V_{flagg} = 0, V_{punkt} = 1) = 1.0
+\end{equation}
+
+\section{Automatisk Musikktranskripsjon (Auditivt til Kern)}
+For lyd er observasjonsrommet $A$ preget av tidsstemplede frekvenser. Oversettelsen krever overgang fra kontinuerlig fysikk til diskret musikkteori.
+
+\subsection{Akustisk pitch til MIDI}
+Vi mapper grunnfrekvensen $f_0$ (Hz) til en nøytral kromatisk MIDI-verdi $m$:
+\begin{equation}
+    m \approx 69 + 12 \log_2\left(\frac{f_0}{440}\right)
+\end{equation}
+
+\subsection{Enharmonisk Staving (Prior over Likelihood)}
+I likestemming er $P(D \mid x)$ identisk for enharmoniske varianter (f.eks. F\# og Gb). Bayes' teorem lar den harmoniske konteksten (prior) diktere stavingen:
+\begin{equation}
+    P(x \mid D) = \frac{P(D \mid x) P(x)}{P(D)}
+\end{equation}
+Siden $P(\text{MIDI}_{66} \mid \text{F\#}) = P(\text{MIDI}_{66} \mid \text{Gb}) = 1.0$, vil den musikkteoretiske modellen for $P(x)$ fungere som det avgjørende filteret.
+
+\begin{lstlisting}[language=Python, caption=Python-skisse for Bayesiansk enharmonisk staving]
+def bayesian_enharmonic_spelling(midi_note, context_priors):
+    hypotheses = ["F#", "Gb"]
+    
+    # Likelihood: P(D | x) er identisk i likestemming
+    likelihoods = {"F#": 1.0, "Gb": 1.0}
+    
+    # Marginal Likelihood: P(D)
+    p_d = sum(likelihoods[note] * context_priors[note] for note in hypotheses)
+    
+    # Posterior: P(x | D)
+    posteriors = {note: (likelihoods[note] * context_priors[note]) / p_d 
+                  for note in hypotheses}
+                  
+    return max(posteriors, key=posteriors.get), posteriors
+
+# Eksempel: Prior basert på D-dur kontekst
+priors_d_major = {"F#": 0.95, "Gb": 0.05}
+best_spelling, _ = bayesian_enharmonic_spelling(66, priors_d_major)
+\end{lstlisting}
+
+\section{Takten som Hierarkisk Overstyring}
+For å sikre robusthet mot feilklassifisering i feature-ekstraksjonen ("bottom-up"), fungerer takten som en "top-down" begrensning. Dette løfter modellen til en hierarkisk graf, tilsvarende formell modellteoretisk semantikk der premissenes gyldighet sjekkes mot en global sannhet.
+
+Ligningen for en gyldig takt krever at summen av de semantiske varighetene til individuelle noter samsvarer med taktarten:
+\begin{equation}
+    \sum_{i=1}^{n} \text{varighet}(\text{note}_i) = \text{Taktart}
+\end{equation}
+Dersom en takt inneholder en tvetydig featurevektor for $n_k$, vil systemet tvinge $n_k$ til å anta den varigheten som tilfredsstiller ligning (5), forutsatt at denne løsningen har non-zero sannsynlighet i feature-laget. Takten opererer dermed som en musikkteoretisk stavekontroll.
+
+\section{Veien Videre}
+For prototype-utvikling vil en representasjon i \texttt{pgmpy} være hensiktsmessig for å definere de diskrete Bayesianske nettverkene (ventiler) over reglene for \texttt{kern} (rørene), før en overgang til C eller SQL-arkitektur for storskala indeksering.
+
+\end{document}

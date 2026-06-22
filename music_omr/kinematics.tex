@@ -1,0 +1,63 @@
+\documentclass[11pt, a4paper]{article}
+
+% --- Pakker for font, språk og matematikk ---
+\usepackage[utf8]{inputenc}
+\usepackage[norsk]{babel}
+\usepackage{mathpazo} % Palatino font
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+
+\title{Sannsynlighetskinematikk i Lukkede Multimodale Systemer: \\ 
+Taktbasert Gjenkjenning i OMR og Lyd}
+\author{Arbeidsnotat / Konseptskisse}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Dette notatet skisserer en arkitektur for Optisk Musikkgjenkjenning (OMR) og multimodal audio-alignment. Ved å modellere musikknotasjon som et strengt regelstyrt, lukket system, kan vi utnytte Richard Jeffreys sannsynlighetskinematikk for å håndtere usikkerhet fra syns- og lydmodeller. Takten (eng. \textit{measure}) fungerer som den sentrale hierarkiske broen, en perfekt partisjon som tillater lokal konvergens av usikkerhet før globale grafer koordinerer relasjoner på tvers av taktstreker.
+\end{abstract}
+
+\section{Introduksjon}
+Klassiske Bayesianske nettverk krever ofte absolutt sikkerhet (modus ponens) for å oppdatere betingede sannsynligheter. I analyse av historiske partiturer genererer maskinsyn og lydanalyse gjerne "skitne" observasjoner med betydelig usikkerhet. I stedet for å la denne usikkerheten forplante seg ukontrollert, formaliserer vi notasjonens iboende logikk som \textit{stive betingelser}, der usikkerhet i observasjonen kun oppdaterer vektingen av de underliggende, gjensidig utelukkende mulighetene.
+
+\section{Sannsynlighetskinematikk (Jeffrey-betinging)}
+Gitt et lukket utfallsrom $\Omega$ definert av takten, lar vi $\{B_1, B_2, \dots, B_n\}$ utgjøre en komplett partisjon av lokalt mulige grafiske eller musikalske tilstander (f.eks. at et symbol er en notehals, en taktstrek, eller støy). Partisjonen er gjensidig utelukkende og uttømmende: $\sum p(B_i) = 1$.
+
+En syns- eller lydmodell observerer systemet og genererer en ny sannsynlighetsfordeling $q(B_i)$ for disse grunntilstandene. For en gitt musikalsk hypotese $x$, postulerer sannsynlighetskinematikken den kinematiske rigiditetsbetingelsen:
+\begin{equation}
+    q(x|B_i) = p(x|B_i)
+\end{equation}
+Dette betyr at de musikalske reglene er uavhengige av observasjonsfeil. Den nye marginale sannsynligheten for $x$ beregnes da via den generaliserte loven om total sannsynlighet:
+\begin{equation}
+    q(x) = \sum_{i=1}^{n} p(x|B_i)q(B_i)
+\end{equation}
+Operasjonelt lar dette oss isolere den visuelle støyen i vektoren $\mathbf{q}$, mens musikkteorien bevares i en overføringsmatrise $\mathbf{P}_x$.
+
+\section{Takten som Avsnitt: Den Perfekte Partisjon}
+Vi modellerer takten som en lokal, matematisk streng avgrensning. Analogt med tekstanalysens dokument-/avsnitt-hierarki, utgjør takten et lokalt mulighetsrom der summen av rytmiske verdier må samsvare nøyaktig med taktartens definisjon (f.eks. $\frac{4}{4}$).
+
+Dette skaper en global rigid betingelse for den lokale partisjonen. Hvis $q(\text{lengde})$ for en gitt note er usikker, vil lengden på de sikrere elementene i samme takt \textit{tvinge} frem en løsning. Det lukkede rommet eliminerer matematisk umulige løsninger.
+
+\section{Multimodal Alignment: Audio som Epistemisk Fasit}
+Når systemet utvides med auditiv informasjon (lydopptak knyttet til partituret), forsterkes taktens funksjon som bindeledd. Lyd gir ekstremt presise data for tid (onsets/offsets) og frekvens (tonehøyde), selv der notebildet er uleselig.
+
+Vi lar lydmodellen produsere en uavhengig observasjonsvektor $\mathbf{q}_{\text{audio}}$. Siden lyd forløper lineært i tid, fungerer taktslaget som synkroniseringspunktet (\textit{alignment}). Om synsmodellen er usikker på en akkord i Takt 4, vil $\mathbf{q}_{\text{audio}}$ levere en dominant sannsynlighet for de spesifikke frekvensene på det nøyaktige tidsavsnittet. Via Jeffrey-betinging kollapser dette den grafiske usikkerheten i takten, fordi logikken krever at det visuelle symbolet må produsere den auditive frekvensen.
+
+\section{Koordinasjon på tvers av takter}
+Mens takten sikrer lokal kinematikk, håndteres fenomener som krysser taktgrenser -- primært bindebuer (\textit{ties}) og fraseringsbuer (\textit{slurs}) -- via en to-pass grafarkitektur.
+
+\begin{enumerate}
+    \item \textbf{Pass 1 (Lokal Konvergens):} Ligningene løses lukket innad i hver takt. Buer detekteres med en lokal sannsynlighet (f.eks. \textit{Start\_Bue} i Takt 1), men påvirker ikke taktens interne rytmiske sum.
+    \item \textbf{Pass 2 (Global Graf):} Buer instansieres som rettede relasjoner (edges) mellom noder på tvers av takter. En bindebue fungerer som en rigid logisk operator som krever lik tonehøyde mellom nodene.
+\end{enumerate}
+
+Denne overføringen av sikkerhet på tvers av systemet tvinger frem en global konsensus, drevet av lokal matrisemultiplikasjon.
+
+\end{document}
